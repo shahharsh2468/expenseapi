@@ -1,6 +1,7 @@
 const app  = require('../app');
 const response = require('../common/response');
 const Expenses = require('../model/ExpenseModel');
+const Users = require('../model/UserModel');
 
 app.post("/expenses",async(req,res)=> {
     try{
@@ -18,6 +19,10 @@ app.post("/expenses",async(req,res)=> {
         if(Object.keys(req.body).length == 0){
             return response.message(res,400,"ERROR",'no data in body'); //if there is no content in body then this error will generate
         }else{
+            const user = await Users.findById(req.body.user_id).select("-password");
+            if(!user){
+                return response.message(res,400,"ERROR",'Invalid user_id');
+            }
             const expense = new Expenses(req.body);
             const createExpenses = await expense.save();
             response.message(res,201,"SUCCESS",'Expense created successfully',createExpenses); //successfully created new customer
@@ -40,7 +45,14 @@ app.get("/expenses",async(req,res)=> {
         // Set to true if you need the website to include cookies in the requests sent
         // to the API (e.g. in case you use sessions)
         res.setHeader('Access-Control-Allow-Credentials', true);
+        if(!req.query.user_id){
+            return response.message(res,400,"ERROR",'Please provide user_id');
+        }
         const user_id = req.query.user_id;
+        const user = await Users.findById(user_id).select("-password");
+        if(!user){
+            return response.message(res,400,"ERROR",'Invalid user_id');
+        }
         const expense = await Expenses.find({"user_id":user_id});
         if(Object.keys(expense).length == 0){
             return response.message(res,200,"SUCCESS",'No Data Available'); //if there is no content in body then this error will generate
